@@ -11,17 +11,6 @@ export class Player {
 
     this.mesh = new THREE.Mesh(geometry, material);
 
-    //Physics Body
-    // this.body = new CANNON.Body({
-    //   mass: 1, // lighter than obstacles
-    //   shape: new CANNON.Sphere(0.5), // simple & stable
-    //   position: new CANNON.Vec3(0, 0, 0),
-    //   linearDamping: 0.2, // space drag (prevents infinite drift)
-    //   angularDamping: 0.9,
-    // });
-
-    // world.addBody(this.body);
-
     //Camera
     this.camera = camera;
     this.coneScan = coneScan;
@@ -46,6 +35,32 @@ export class Player {
     this.maxTilt = Math.PI * 0.08; // how much it tilts
     this.tiltSpeed = 8; // how fast it tilts back
     this.currentTilt = 0;
+
+    /**
+     * physics world
+     *  */
+    //player rigid body
+    // const boxShape = new CANNON.Box(new CANNON.Vec3(1 * 0.5, 1 * 0.5, 1 * 0.5));
+    const boxShape = new CANNON.Sphere(1);
+    this.boxBody = new CANNON.Body({
+      mass: 1,
+      position: new CANNON.Vec3(0, 3, 0),
+      shape: boxShape,
+      linearDamping: 0.2,
+      angularDamping: 0.9,
+    });
+    world.addBody(this.boxBody);
+
+    //plane rigid body
+    const floorShape = new CANNON.Plane();
+    const floorBody = new CANNON.Body();
+    floorBody.mass = 0;
+    floorBody.addShape(floorShape);
+    floorBody.quaternion.setFromAxisAngle(
+      new CANNON.Vec3(-1, 0, 0),
+      Math.PI * 0.5,
+    );
+    world.addBody(floorBody);
   }
 
   update(delta, keys) {
@@ -53,22 +68,46 @@ export class Player {
       ? this.baseSpeed * this.boostMultiplier
       : this.baseSpeed;
 
-    if (keys.forward) this.group.translateZ(-speed * delta);
-    if (keys.backward) this.group.translateZ(speed * delta);
-    if (keys.left) this.group.rotation.y += this.rotateSpeed * delta;
-    if (keys.right) this.group.rotation.y -= this.rotateSpeed * delta;
-
-    // Target tilt
-    let targetTilt = 0;
-
-    if (keys.left) targetTilt = this.maxTilt;
-    if (keys.right) targetTilt = -this.maxTilt;
-
-    this.currentTilt = THREE.MathUtils.lerp(
-      this.currentTilt,
-      targetTilt,
-      delta * this.tiltSpeed
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
+      this.group.quaternion,
     );
+
+    const forceStrength = speed * 5;
+    if (keys.forward) {
+      this.boxBody.applyForce(
+        new CANNON.Vec3(0, 0, -forceStrength),
+        new CANNON.Vec3(0, 0, 0),
+      );
+    }
+    if (keys.backward) {
+      this.boxBody.applyForce(
+        new CANNON.Vec3(0, 0, forceStrength),
+        new CANNON.Vec3(0, 0, 0),
+      );
+    }
+
+    this.group.position.copy(this.boxBody.position);
+    // this.mesh.quaternion.copy(this.boxBody.quaternion);
+
+    // const speed = keys.boost
+    //   ? this.baseSpeed * this.boostMultiplier
+    //   : this.baseSpeed;
+    // if (keys.forward) this.group.translateZ(-speed * delta);
+    // if (keys.backward) this.group.translateZ(speed * delta);
+    // if (keys.left) this.group.rotation.y += this.rotateSpeed * delta;
+    // if (keys.right) this.group.rotation.y -= this.rotateSpeed * delta;
+
+    // // Target tilt
+    // let targetTilt = 0;
+
+    // if (keys.left) targetTilt = this.maxTilt;
+    // if (keys.right) targetTilt = -this.maxTilt;
+
+    // this.currentTilt = THREE.MathUtils.lerp(
+    //   this.currentTilt,
+    //   targetTilt,
+    //   delta * this.tiltSpeed,
+    // );
 
     //Camera Lerp & Target
     const targetCameraZ = keys.boost ? this.cameraZBoost : this.cameraZDefault;
@@ -78,116 +117,9 @@ export class Player {
     this.currentCameraZ = THREE.MathUtils.lerp(
       this.currentCameraZ,
       targetCameraZ,
-      delta * this.cameraLerpSpeed
+      delta * this.cameraLerpSpeed,
     );
 
     this.camera.position.z = this.currentCameraZ;
   }
-
-  //   update(delta, keys) {
-  //     const maxSpin = 1.5;
-
-  //     this.body.angularVelocity.x = THREE.MathUtils.clamp(
-  //       this.body.angularVelocity.x,
-  //       -maxSpin,
-  //       maxSpin,
-  //     );
-
-  //     this.body.angularVelocity.y = THREE.MathUtils.clamp(
-  //       this.body.angularVelocity.y,
-  //       -maxSpin,
-  //       maxSpin,
-  //     );
-
-  //     this.body.angularVelocity.z = THREE.MathUtils.clamp(
-  //       this.body.angularVelocity.z,
-  //       -maxSpin,
-  //       maxSpin,
-  //     );
-
-  //     /* -------------------------------
-  //      1. SPEED / BOOST
-  //   --------------------------------*/
-  //     const speed = keys.boost
-  //       ? this.baseSpeed * this.boostMultiplier
-  //       : this.baseSpeed;
-
-  //     const forceStrength = speed * 5;
-  //     const turnStrength = this.rotateSpeed * 2;
-
-  //     /* -------------------------------
-  //      2. FORWARD / BACKWARD (FORCES)
-  //   --------------------------------*/
-  //     const forwardDir = new THREE.Vector3(0, 0, -1).applyQuaternion(
-  //       this.group.quaternion,
-  //     );
-
-  //     if (keys.forward) {
-  //       this.body.applyForce(
-  //         new CANNON.Vec3(
-  //           forwardDir.x * forceStrength,
-  //           forwardDir.y * forceStrength,
-  //           forwardDir.z * forceStrength,
-  //         ),
-  //         this.body.position,
-  //       );
-  //     }
-
-  //     if (keys.backward) {
-  //       this.body.applyForce(
-  //         new CANNON.Vec3(
-  //           -forwardDir.x * forceStrength,
-  //           -forwardDir.y * forceStrength,
-  //           -forwardDir.z * forceStrength,
-  //         ),
-  //         this.body.position,
-  //       );
-  //     }
-
-  //     /* -------------------------------
-  //      3. TURNING (ANGULAR VELOCITY)
-  //   --------------------------------*/
-  //     if (keys.left) {
-  //       this.body.angularVelocity.y += turnStrength * delta;
-  //     }
-
-  //     if (keys.right) {
-  //       this.body.angularVelocity.y -= turnStrength * delta;
-  //     }
-
-  //     /* -------------------------------
-  //      4. VISUAL TILT (NOT PHYSICS)
-  //   --------------------------------*/
-  //     let targetTilt = 0;
-
-  //     if (keys.left) targetTilt = this.maxTilt;
-  //     if (keys.right) targetTilt = -this.maxTilt;
-
-  //     this.currentTilt = THREE.MathUtils.lerp(
-  //       this.currentTilt,
-  //       targetTilt,
-  //       delta * this.tiltSpeed,
-  //     );
-
-  //     this.group.rotation.z = this.currentTilt;
-
-  //     /* -------------------------------
-  //      5. CAMERA BOOST LERP
-  //   --------------------------------*/
-  //     const targetCameraZ = keys.boost ? this.cameraZBoost : this.cameraZDefault;
-
-  //     this.currentCameraZ = THREE.MathUtils.lerp(
-  //       this.currentCameraZ,
-  //       targetCameraZ,
-  //       delta * this.cameraLerpSpeed,
-  //     );
-
-  //     this.camera.position.z = this.currentCameraZ;
-
-  //     /* -------------------------------
-  //      6. SYNC PHYSICS → RENDER
-  //   --------------------------------*/
-  //     this.group.position.copy(this.body.position);
-  //     this.group.quaternion.copy(this.body.quaternion);
-  //   }
 }

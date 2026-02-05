@@ -4,7 +4,7 @@ import * as CANNON from "cannon-es";
 export const world = new CANNON.World();
 
 // 🚀 SPACE ENVIRONMENT → NO GRAVITY
-world.gravity.set(0, 0, 0);
+world.gravity.set(0, -9.82, 0);
 
 // Faster collision detection
 world.broadphase = new CANNON.SAPBroadphase(world);
