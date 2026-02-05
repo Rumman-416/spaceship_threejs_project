@@ -67,17 +67,18 @@ export class Player {
     this.currentTilt = THREE.MathUtils.lerp(
       this.currentTilt,
       targetTilt,
-      delta * this.tiltSpeed,
+      delta * this.tiltSpeed
     );
 
     //Camera Lerp & Target
     const targetCameraZ = keys.boost ? this.cameraZBoost : this.cameraZDefault;
-    this.group.rotation.z = this.currentTilt;
+    // this.group.rotation.z = this.currentTilt;
+    this.mesh.rotation.z = this.currentTilt;
 
     this.currentCameraZ = THREE.MathUtils.lerp(
       this.currentCameraZ,
       targetCameraZ,
-      delta * this.cameraLerpSpeed,
+      delta * this.cameraLerpSpeed
     );
 
     this.camera.position.z = this.currentCameraZ;
