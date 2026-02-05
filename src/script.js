@@ -10,7 +10,7 @@ import { createFloor } from "./world/floor.js";
 import { Player } from "./player/player.js";
 import { initKeyboard, keys } from "./utils/keyboard.js";
 import { getDelta } from "./utils/clock.js";
-import { createObstacles } from "./world/Obstacle.js";
+import { createObstacles } from "./world/obstacle.js";
 import { createScan } from "./player/coneScan.js";
 
 // import { world } from "./physics/world.js";
