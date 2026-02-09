@@ -2,6 +2,8 @@ import * as THREE from "three";
 import planetsVertexShader from "../shaders/planets/vertex.glsl";
 import planetsFragmentShader from "../shaders/planets/fragment.glsl";
 import { getDelta } from "../utils/clock";
+import * as CANNON from "cannon-es";
+import { world } from "../physics/world.js";
 
 export function createPlanet(scene) {
   //Color
@@ -9,10 +11,14 @@ export function createPlanet(scene) {
     color1: "#2B0F0F",
     color2: "#FF6A00",
   };
+  const sphereGeometry = {
+    radius: 5,
+    widthSegment: 32,
+  };
 
   const geometry = new THREE.SphereGeometry(
-    5, //radius
-    64 //width segemnts
+    sphereGeometry.radius, //radius
+    sphereGeometry.widthSegment //width segemnts
   );
   const material = new THREE.ShaderMaterial({
     // wireframe: true,
@@ -35,5 +41,19 @@ export function createPlanet(scene) {
 
   scene.add(planet);
 
-  return planet;
+  /**
+   * physics world
+   *  */
+  //planet rigid body
+  const sphereShape = new CANNON.Sphere(sphereGeometry.radius + 5);
+  const sphereBody = new CANNON.Body({
+    mass: 0,
+    position: new CANNON.Vec3(0, 0, -30),
+    shape: sphereShape,
+    linearDamping: 0.2,
+    angularDamping: 0.9,
+  });
+  world.addBody(sphereBody);
+
+  return { planet, sphereBody };
 }

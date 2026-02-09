@@ -6,8 +6,18 @@ export class Player {
   constructor(camera, coneScan) {
     this.group = new THREE.Group();
 
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshBasicMaterial();
+    const spaceShipGeometry = {
+      width: 1,
+      height: 0.5,
+      depth: 2,
+    };
+
+    const geometry = new THREE.BoxGeometry(
+      spaceShipGeometry.width,
+      spaceShipGeometry.height,
+      spaceShipGeometry.depth
+    );
+    const material = new THREE.MeshNormalMaterial();
 
     this.mesh = new THREE.Mesh(geometry, material);
 
@@ -16,6 +26,7 @@ export class Player {
     this.coneScan = coneScan;
     this.group.add(this.mesh);
     this.group.add(camera, coneScan);
+    // this.group.add(coneScan);
 
     this.cameraZDefault = 6;
     this.cameraZBoost = 7.5;
@@ -39,17 +50,76 @@ export class Player {
     /**
      * physics world
      *  */
-    //player rigid body
-    // const boxShape = new CANNON.Box(new CANNON.Vec3(1 * 0.5, 1 * 0.5, 1 * 0.5));
-    const boxShape = new CANNON.Sphere(1);
-    this.boxBody = new CANNON.Body({
-      mass: 1,
-      position: new CANNON.Vec3(0, 3, 0),
-      shape: boxShape,
-      linearDamping: 0.2,
-      angularDamping: 0.9,
+    // --- CHASSIS BODY ---
+    const chassisShape = new CANNON.Box(
+      new CANNON.Vec3(
+        spaceShipGeometry.width,
+        spaceShipGeometry.height * 0.5,
+        spaceShipGeometry.depth * 0.5
+      )
+    );
+    this.chassisBody = new CANNON.Body({
+      mass: 5,
+      position: new CANNON.Vec3(0, 1, 0),
     });
-    world.addBody(this.boxBody);
+    this.chassisBody.addShape(chassisShape);
+    this.chassisBody.linearDamping = 0.2;
+    this.chassisBody.angularDamping = 0.85;
+    this.chassisBody.allowSleep = false;
+
+    world.addBody(this.chassisBody);
+
+    // --- VEHICLE ---
+    this.vehicle = new CANNON.RigidVehicle({
+      chassisBody: this.chassisBody,
+    });
+
+    // --- WHEEL OPTIONS ---
+
+    const mass = 1;
+    const axisWidth = spaceShipGeometry.width;
+    const wheelShape = new CANNON.Sphere(0.35);
+    const wheelMaterial = new CANNON.Material("wheel");
+    const down = new CANNON.Vec3(0, -1, 0);
+
+    const wheelBody1 = new CANNON.Body({ mass, material: wheelMaterial });
+    wheelBody1.addShape(wheelShape);
+    wheelBody1.angularDamping = 0.85;
+    this.vehicle.addWheel({
+      body: wheelBody1,
+      position: new CANNON.Vec3(-0.89, 0, -axisWidth / 2), //1
+      axis: new CANNON.Vec3(1, 0, 0),
+      direction: down,
+    });
+    const wheelBody2 = new CANNON.Body({ mass, material: wheelMaterial });
+    wheelBody2.addShape(wheelShape);
+    wheelBody2.angularDamping = 0.85;
+    this.vehicle.addWheel({
+      body: wheelBody2,
+      position: new CANNON.Vec3(0.89, 0, -axisWidth / 2), //2
+      axis: new CANNON.Vec3(1, 0, 0),
+      direction: down,
+    });
+    const wheelBody3 = new CANNON.Body({ mass, material: wheelMaterial });
+    wheelBody3.addShape(wheelShape);
+    wheelBody3.angularDamping = 0.85;
+    this.vehicle.addWheel({
+      body: wheelBody3,
+      position: new CANNON.Vec3(-0.89, 0, axisWidth / 2), //3
+
+      axis: new CANNON.Vec3(1, 0, 0),
+      direction: down,
+    });
+    const wheelBody4 = new CANNON.Body({ mass, material: wheelMaterial });
+    wheelBody4.addShape(wheelShape);
+    wheelBody4.angularDamping = 0.85;
+    this.vehicle.addWheel({
+      body: wheelBody4,
+      position: new CANNON.Vec3(0.89, 0, axisWidth / 2), //4
+      axis: new CANNON.Vec3(1, 0, 0),
+      direction: down,
+    });
+    this.vehicle.addToWorld(world);
 
     //plane rigid body
     const floorShape = new CANNON.Plane();
@@ -58,56 +128,66 @@ export class Player {
     floorBody.addShape(floorShape);
     floorBody.quaternion.setFromAxisAngle(
       new CANNON.Vec3(-1, 0, 0),
-      Math.PI * 0.5,
+      Math.PI * 0.5
     );
     world.addBody(floorBody);
   }
 
   update(delta, keys) {
-    const speed = keys.boost
-      ? this.baseSpeed * this.boostMultiplier
-      : this.baseSpeed;
-
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(
-      this.group.quaternion,
+    const maxForce = 6;
+    const speedMultiplier = 2;
+    const speed = this.chassisBody.velocity.length();
+    const maxSteerVal = THREE.MathUtils.lerp(
+      Math.PI / 4,
+      Math.PI / 12,
+      speed / 10
     );
+    const q = this.chassisBody.quaternion;
+    const euler = new CANNON.Vec3();
+    q.toEuler(euler);
 
-    const forceStrength = speed * 5;
+    // Kill roll + pitch
+    euler.x *= 0.9;
+    euler.z *= 0.9;
+
+    q.setFromEuler(euler.x, euler.y, euler.z, "XYZ");
+
+    if (keys.forward || keys.backward || keys.left || keys.right) {
+      this.chassisBody.wakeUp();
+    }
+
+    for (let i = 0; i < this.vehicle.wheelBodies.length; i++) {
+      this.vehicle.setWheelForce(0, i);
+      this.vehicle.setSteeringValue(0, i);
+      this.vehicle.wheelBodies[i].wakeUp();
+    }
+
     if (keys.forward) {
-      this.boxBody.applyForce(
-        new CANNON.Vec3(0, 0, -forceStrength),
-        new CANNON.Vec3(0, 0, 0),
-      );
+      for (let i = 0; i < 4; i++) {
+        this.vehicle.setWheelForce(-maxForce, i);
+      }
     }
+    if (keys.forward && keys.boost) {
+      for (let i = 0; i < 4; i++) {
+        this.vehicle.setWheelForce(-maxForce * speedMultiplier, i);
+      }
+    }
+
     if (keys.backward) {
-      this.boxBody.applyForce(
-        new CANNON.Vec3(0, 0, forceStrength),
-        new CANNON.Vec3(0, 0, 0),
-      );
+      for (let i = 0; i < 4; i++) {
+        this.vehicle.setWheelForce(maxForce * 0.5, i);
+      }
     }
 
-    this.group.position.copy(this.boxBody.position);
-    // this.mesh.quaternion.copy(this.boxBody.quaternion);
+    if (keys.left) {
+      this.vehicle.setSteeringValue(maxSteerVal, 0);
+      this.vehicle.setSteeringValue(maxSteerVal, 1);
+    }
 
-    // const speed = keys.boost
-    //   ? this.baseSpeed * this.boostMultiplier
-    //   : this.baseSpeed;
-    // if (keys.forward) this.group.translateZ(-speed * delta);
-    // if (keys.backward) this.group.translateZ(speed * delta);
-    // if (keys.left) this.group.rotation.y += this.rotateSpeed * delta;
-    // if (keys.right) this.group.rotation.y -= this.rotateSpeed * delta;
-
-    // // Target tilt
-    // let targetTilt = 0;
-
-    // if (keys.left) targetTilt = this.maxTilt;
-    // if (keys.right) targetTilt = -this.maxTilt;
-
-    // this.currentTilt = THREE.MathUtils.lerp(
-    //   this.currentTilt,
-    //   targetTilt,
-    //   delta * this.tiltSpeed,
-    // );
+    if (keys.right) {
+      this.vehicle.setSteeringValue(-maxSteerVal, 0);
+      this.vehicle.setSteeringValue(-maxSteerVal, 1);
+    }
 
     //Camera Lerp & Target
     const targetCameraZ = keys.boost ? this.cameraZBoost : this.cameraZDefault;
@@ -117,7 +197,7 @@ export class Player {
     this.currentCameraZ = THREE.MathUtils.lerp(
       this.currentCameraZ,
       targetCameraZ,
-      delta * this.cameraLerpSpeed,
+      delta * this.cameraLerpSpeed
     );
 
     this.camera.position.z = this.currentCameraZ;
