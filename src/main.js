@@ -16,12 +16,15 @@ import { createScan } from "./player/coneScan.js";
 import { createPlanet } from "./planets/planets.js";
 import { world } from "./physics/world.js";
 import CannonDebugger from "cannon-es-debugger";
+import { initPhysics } from "./physics/initPhysics.js";
 
 const canvas = document.querySelector("canvas.webgl");
 
 const camera = createCamera();
 const renderer = createRenderer(canvas);
 const controls = createOrbit(camera, renderer);
+
+initPhysics();
 
 onResize(camera, renderer);
 
@@ -31,7 +34,7 @@ const coneScan = createScan(scene, keys);
 const obstacles = createObstacles(scene);
 const planets = createPlanet(scene);
 
-const player = new Player(camera, coneScan);
+const player = new Player(camera, coneScan, planets.planet);
 scene.add(player.group);
 
 /**
