@@ -17,6 +17,7 @@ import { createPlanet } from "./planets/planets.js";
 import { world } from "./physics/world.js";
 import CannonDebugger from "cannon-es-debugger";
 import { initPhysics } from "./physics/initPhysics.js";
+import { createLights } from "./core/worldLight.js";
 
 const canvas = document.querySelector("canvas.webgl");
 
@@ -33,7 +34,7 @@ initKeyboard();
 const coneScan = createScan(scene, keys);
 const obstacles = createObstacles(scene);
 const planets = createPlanet(scene);
-
+createLights(scene);
 const player = new Player(camera, coneScan, planets.planet);
 scene.add(player.group);
 
@@ -73,7 +74,7 @@ function tick() {
   player.group.quaternion.copy(player.chassisBody.quaternion);
 
   //cannon debugger update
-  cannonDebugger.update();
+  //   cannonDebugger.update();
 
   // controls.update();
 

@@ -9,7 +9,7 @@ export function updatePlayerMovement(vehicle, chassisBody, keys) {
   const maxSteerVal = THREE.MathUtils.lerp(
     Math.PI / 4,
     Math.PI / 12,
-    speed / 10
+    speed / 10,
   );
 
   // Reset forces
@@ -29,7 +29,7 @@ export function updatePlayerMovement(vehicle, chassisBody, keys) {
 
   if (keys.backward) {
     vehicle.wheelBodies.forEach((_, i) => {
-      vehicle.setWheelForce(maxForce * 0.5, i);
+      vehicle.setWheelForce(maxForce, i);
     });
   }
 

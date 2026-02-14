@@ -47,7 +47,7 @@ export function createScan(scene, keys) {
       duration: 1,
     });
   }
-  console.log(material);
+  // console.log(material);
 
   scene.add(coneScan);
 

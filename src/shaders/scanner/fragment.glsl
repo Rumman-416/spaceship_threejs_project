@@ -1,4 +1,5 @@
 varying vec2 vUv;
+varying vec3 vNormal;
 
 uniform float uTime;
 uniform vec3 uColor;

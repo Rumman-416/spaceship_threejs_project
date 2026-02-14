@@ -6,14 +6,16 @@ export function createPlayerPhysics(dimensions) {
     new CANNON.Vec3(
       dimensions.width * 0.5,
       dimensions.height * 0.5,
-      dimensions.depth * 0.5
-    )
+      dimensions.depth * 0.5,
+    ),
   );
 
   const chassisBody = new CANNON.Body({
     mass: 5,
     position: new CANNON.Vec3(0, 1, 0),
   });
+
+  chassisBody.angularFactor.set(0, 1, 0); // prevent flipping
 
   chassisBody.addShape(chassisShape);
   chassisBody.linearDamping = 0.2;
@@ -39,6 +41,7 @@ export function createPlayerPhysics(dimensions) {
     const wheelBody = new CANNON.Body({ mass: 1 });
     wheelBody.addShape(wheelShape);
     wheelBody.angularDamping = 0.85;
+    // wheelBody.linearFactor.set(1, 0, 1); // no vertical movement
 
     vehicle.addWheel({
       body: wheelBody,
