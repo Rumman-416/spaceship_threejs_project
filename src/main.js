@@ -74,7 +74,7 @@ function tick() {
   player.group.quaternion.copy(player.chassisBody.quaternion);
 
   //cannon debugger update
-  //   cannonDebugger.update();
+  cannonDebugger.update();
 
   // controls.update();
 

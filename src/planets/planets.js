@@ -18,7 +18,7 @@ export function createPlanet(scene) {
 
   const geometry = new THREE.SphereGeometry(
     sphereGeometry.radius, //radius
-    sphereGeometry.widthSegment //width segemnts
+    sphereGeometry.widthSegment, //width segemnts
   );
   const material = new THREE.ShaderMaterial({
     // wireframe: true,
@@ -38,6 +38,11 @@ export function createPlanet(scene) {
   const delta = getDelta();
 
   planet.position.z = -30;
+
+  planet.userData = {
+    name: "Zyphera",
+    population: 4200000,
+  };
 
   scene.add(planet);
 
