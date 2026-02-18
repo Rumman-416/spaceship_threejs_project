@@ -45,10 +45,10 @@ export class Player {
 
     this.planets = planets;
 
-    this.raycaster = new THREE.Raycaster();
-    this.raycaster.far = 20;
-    this.rayOrigin = new THREE.Vector3();
-    this.rayDirection = new THREE.Vector3(0, 0, -1);
+    // this.raycaster = new THREE.Raycaster();
+    // this.raycaster.far = 20;
+    // this.rayOrigin = new THREE.Vector3();
+    // this.rayDirection = new THREE.Vector3(0, 0, -1);
 
     /**
      * Raycaster
@@ -71,32 +71,10 @@ export class Player {
       this.camera,
       this.currentCameraZ,
       keys,
-      delta,
+      delta
     );
 
     this.group.position.copy(this.chassisBody.position);
     this.group.quaternion.copy(this.chassisBody.quaternion);
-
-    // -------- SCANNER --------
-    if (keys.scan && this.mesh) {
-      // player world position
-      this.group.getWorldPosition(this.rayOrigin);
-
-      // forward direction of ship
-      this.rayDirection.set(0, 0, -1).applyQuaternion(this.group.quaternion);
-
-      this.raycaster.set(this.rayOrigin, this.rayDirection);
-
-      const intersects = this.raycaster.intersectObject(this.planets, true);
-
-      if (intersects.length > 0) {
-        const hit = intersects[0].object;
-
-        if (hit.userData?.name) {
-          console.log("Planet Name:", hit.userData.name);
-          console.log("Population:", hit.userData.population);
-        }
-      }
-    }
   }
 }

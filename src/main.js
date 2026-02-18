@@ -18,12 +18,32 @@ import { world } from "./physics/world.js";
 import CannonDebugger from "cannon-es-debugger";
 import { initPhysics } from "./physics/initPhysics.js";
 import { createLights } from "./core/worldLight.js";
+import { scanPlanets } from "./utils/scanPlanets.js";
 
 const canvas = document.querySelector("canvas.webgl");
 
 const camera = createCamera();
 const renderer = createRenderer(canvas);
 const controls = createOrbit(camera, renderer);
+
+const planetData = [
+  {
+    name: "nebula",
+    habitable: true,
+    radius: 5,
+    position: [0, 0, -30],
+    color1: "#2B0F0F",
+    color2: "#FF6A00",
+  },
+  {
+    name: "nebula 2",
+    habitable: true,
+    radius: 8,
+    position: [-5, 2, 30],
+    color1: "#2B0FFF",
+    color2: "#FF6AF0",
+  },
+];
 
 initPhysics();
 
@@ -33,9 +53,12 @@ initKeyboard();
 // createFloor(scene);
 const coneScan = createScan(scene, keys);
 const obstacles = createObstacles(scene);
-const planets = createPlanet(scene);
+const planets = createPlanet(scene, planetData);
+
 createLights(scene);
-const player = new Player(camera, coneScan, planets.planet);
+
+const player = new Player(camera, coneScan, planets);
+
 scene.add(player.group);
 
 /**
@@ -51,16 +74,23 @@ function tick() {
   const elapsedTime = clock.getElapsedTime();
 
   coneScan.material.uniforms.uTime.value = elapsedTime;
-  planets.planet.material.uniforms.uTime.value = elapsedTime;
   if (keys.scan) {
     animateScanScale(coneScan, 1); // 0 → 1
   } else {
     animateScanScale(coneScan, 0); // 1 → 0
   }
 
-  planets.planet.rotation.y += delta * 0.2;
+  planets.forEach((planetObj) => {
+    planetObj.mesh.material.uniforms.uTime.value = elapsedTime;
+    planetObj.mesh.rotation.y += delta * 0.2;
+  });
 
   player.update(delta, keys);
+
+  // scan trigger
+  if (keys.scan) {
+    scanPlanets(player.group, planets);
+  }
 
   /**
    * physics world
